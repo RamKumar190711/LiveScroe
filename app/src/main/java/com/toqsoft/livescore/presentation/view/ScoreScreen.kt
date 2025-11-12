@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.dp
 import com.toqsoft.livescore.domain.model.CricketScore
 import com.toqsoft.livescore.presentation.viewmodel.ScoreViewModel
 import com.toqsoft.livescore.presentation.viewmodel.UiState
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -31,7 +34,9 @@ fun ScoreScreen(viewModel: ScoreViewModel) {
         is UiState.Success -> {
             val allScores = (uiState as UiState.Success).scores
 
-            val upcomingMatches = allScores.getUpcomingMatches()
+            val upcomingMatches = allScores.getUpcomingMatches().sortedBy {
+                ZonedDateTime.parse(it.dateTimeGMT, DateTimeFormatter.ISO_DATE_TIME)
+            }
             val liveMatches = allScores - upcomingMatches
 
             LazyColumn(
@@ -79,16 +84,22 @@ fun ScoreScreen(viewModel: ScoreViewModel) {
     }
 }
 
-// Extension function to filter upcoming matches
+
 fun List<CricketScore>.getUpcomingMatches(): List<CricketScore> {
-    val now = ZonedDateTime.now()
+    val nowUtc = ZonedDateTime.now(ZoneOffset.UTC)
+    println("Current UTC time: $nowUtc")
+
     return this.filter { match ->
         match.dateTimeGMT?.let { dateStr ->
             try {
-                // Try parsing ISO format
-                val matchTime = ZonedDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME)
-                matchTime.isAfter(now)
-            } catch (e: DateTimeParseException) {
+                // Parse API time as UTC
+                val matchTimeUtc = LocalDateTime.parse(dateStr, DateTimeFormatter.ISO_DATE_TIME)
+                    .atZone(ZoneOffset.UTC)
+                val isUpcoming = matchTimeUtc.isAfter(nowUtc)
+                println("Match: ${match.name}, date: $dateStr, UTC: $matchTimeUtc, isUpcoming: $isUpcoming")
+                isUpcoming
+            } catch (e: Exception) {
+                println("Failed to parse ${match.name}: $dateStr")
                 false
             }
         } ?: false

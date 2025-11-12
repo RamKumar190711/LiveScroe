@@ -1,9 +1,8 @@
 package com.toqsoft.livescore.presentation.view
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -23,7 +22,6 @@ import java.time.ZonedDateTime
 
 @Composable
 fun ScoreItem(score: CricketScore) {
-
     val context = LocalContext.current
 
     val matchTypeColor = when (score.matchType?.lowercase()) {
@@ -33,7 +31,6 @@ fun ScoreItem(score: CricketScore) {
         else -> MaterialTheme.colorScheme.primary
     }
 
-    // Coil image loader with SVG support
     val imageLoader = remember {
         ImageLoader.Builder(context)
             .components { add(SvgDecoder.Factory()) }
@@ -103,13 +100,16 @@ fun ScoreItem(score: CricketScore) {
 
                         val teamScore = score.score?.getOrNull(index)
                         Text(
-                            text = teamScore?.let { "${it.r}/${it.w}" } ?: score.dateTimeGMT?.let {
-                                val displayTime = try {
-                                    ZonedDateTime.parse(it).toLocalTime().toString()
+                            text = teamScore?.let { "${it.r}/${it.w}" } ?: score.dateTimeGMT?.let { dateStr ->
+                                try {
+                                    val matchDateTime = ZonedDateTime.parse(dateStr)
+                                    val display = matchDateTime.toLocalDate().toString() +
+                                            " " +
+                                            matchDateTime.toLocalTime().withNano(0).toString()
+                                    "Starts at: $display UTC"
                                 } catch (e: Exception) {
-                                    it
+                                    "Starts at: $dateStr"
                                 }
-                                "Starts at: $displayTime UTC"
                             } ?: "",
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -118,15 +118,32 @@ fun ScoreItem(score: CricketScore) {
                 }
             }
 
-            // Match status
-            score.status?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
+            // Bottom row: match status at bottom right (normal text)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                val completedStatuses = listOf("ended", "match end", "completed", "finished","won")
+                val completedBlue = Color(0xFF3399FF)
+                val statusText = score.status ?: ""
+                val statusColor = when {
+                    statusText.lowercase().contains("day") -> Color.Red // ongoing Test match
+                    statusText.lowercase().contains("live") -> Color.Red // T20/ODI live
+                    completedStatuses.any { statusText.lowercase().contains(it) } -> completedBlue
+                    else -> Color.Gray
+                }
+
+                if (statusText.isNotEmpty()) {
+                    Text(
+                        text = statusText, // keep as-is, no uppercase
+                        color = statusColor,
+                        style = MaterialTheme.typography.bodyMedium // normal font
+                    )
+                }
             }
         }
     }
 }
+
+
+
