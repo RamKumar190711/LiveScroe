@@ -1,6 +1,9 @@
 package com.toqsoft.livescore.presentation.view
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -20,130 +23,80 @@ import com.toqsoft.livescore.domain.model.CricketScore
 import com.toqsoft.livescore.domain.utill.getFlagUrl
 import java.time.ZonedDateTime
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ScoreItem(score: CricketScore) {
+fun ScoreItem(score: CricketScore, onClick: (CricketScore) -> Unit) {
     val context = LocalContext.current
-
-    val matchTypeColor = when (score.matchType?.lowercase()) {
-        "t20" -> Color.Red
-        "odi" -> Color.Gray
-        "test" -> Color.Black
-        else -> MaterialTheme.colorScheme.primary
-    }
-
-    val imageLoader = remember {
-        ImageLoader.Builder(context)
-            .components { add(SvgDecoder.Factory()) }
-            .build()
-    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 8.dp),
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+            .clickable { onClick(score) },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-
             // Top row: match name + type
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = score.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                Text(score.name, style = MaterialTheme.typography.bodyMedium)
                 Box(
                     modifier = Modifier
                         .clip(MaterialTheme.shapes.small)
-                        .background(matchTypeColor)
+                        .background(Color.Gray)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text(
-                        text = score.matchType ?: "Test",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
-                    )
+                    Text(score.matchType ?: "Test", color = Color.White)
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Teams and scores / upcoming start time
-            Column(modifier = Modifier.fillMaxWidth()) {
-                score.teams.forEachIndexed { index, team ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val flagUrl = getFlagUrl(team)
-                        if (flagUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(flagUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                imageLoader = imageLoader,
-                                contentDescription = "$team flag/logo",
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-
-                        Text(
-                            text = team,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
+            // Teams & scores
+            score.teams.forEachIndexed { index, team ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val flagUrl = getFlagUrl(team)
+                    if (flagUrl.isNotEmpty()) {
+                        AsyncImage(
+                            model = flagUrl,
+                            contentDescription = "$team flag",
+                            modifier = Modifier.size(24.dp).clip(CircleShape)
                         )
-
-                        val teamScore = score.score?.getOrNull(index)
-                        Text(
-                            text = teamScore?.let { "${it.r}/${it.w}" } ?: score.dateTimeGMT?.let { dateStr ->
-                                try {
-                                    val matchDateTime = ZonedDateTime.parse(dateStr)
-                                    val display = matchDateTime.toLocalDate().toString() +
-                                            " " +
-                                            matchDateTime.toLocalTime().withNano(0).toString()
-                                    "Starts at: $display UTC"
-                                } catch (e: Exception) {
-                                    "Starts at: $dateStr"
-                                }
-                            } ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-            }
 
-            // Bottom row: match status at bottom right (normal text)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                val completedStatuses = listOf("ended", "match end", "completed", "finished","won")
-                val completedBlue = Color(0xFF3399FF)
-                val statusText = score.status ?: ""
-                val statusColor = when {
-                    statusText.lowercase().contains("day") -> Color.Red // ongoing Test match
-                    statusText.lowercase().contains("live") -> Color.Red // T20/ODI live
-                    completedStatuses.any { statusText.lowercase().contains(it) } -> completedBlue
-                    else -> Color.Gray
-                }
+                    Text(team, modifier = Modifier.weight(1f))
 
-                if (statusText.isNotEmpty()) {
+                    val teamScore = score.score?.getOrNull(index)
+                    val crr = if (teamScore != null && teamScore.o > 0) teamScore.r.toDouble() / teamScore.o else 0.0
                     Text(
-                        text = statusText, // keep as-is, no uppercase
-                        color = statusColor,
-                        style = MaterialTheme.typography.bodyMedium // normal font
+                        text = teamScore?.let { "${it.r}/${it.w} (${it.o}) CRR: ${"%.2f".format(crr)}" } ?: "",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            // Match status
+            score.status?.let {
+                Text(
+                    text = it,
+                    color = if (it.lowercase().contains("live")) Color.Red else Color.Gray,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
         }
     }
 }
+
 
 
 

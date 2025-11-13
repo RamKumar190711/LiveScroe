@@ -1,9 +1,11 @@
 package com.toqsoft.livescore.presentation.view
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -13,18 +15,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.toqsoft.livescore.presentation.navigation.ScoreApp
 import com.toqsoft.livescore.presentation.viewmodel.ScoreViewModel
 import com.toqsoft.livescore.ui.theme.LiveScoreTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            LiveScoreTheme {
                 val viewModel: ScoreViewModel = hiltViewModel()
-                ScoreScreen(viewModel)
+                ScoreApp(viewModel = viewModel)
             }
         }
     }

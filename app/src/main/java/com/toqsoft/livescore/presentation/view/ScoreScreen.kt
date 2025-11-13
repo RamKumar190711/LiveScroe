@@ -1,5 +1,7 @@
 package com.toqsoft.livescore.presentation.view
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,8 +22,9 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ScoreScreen(viewModel: ScoreViewModel) {
+fun ScoreScreen(viewModel: ScoreViewModel, onScoreClick: (CricketScore) -> Unit) {
     val uiState by viewModel.uiState.collectAsState()
 
     when (uiState) {
@@ -33,7 +36,6 @@ fun ScoreScreen(viewModel: ScoreViewModel) {
 
         is UiState.Success -> {
             val allScores = (uiState as UiState.Success).scores
-
             val upcomingMatches = allScores.getUpcomingMatches().sortedBy {
                 ZonedDateTime.parse(it.dateTimeGMT, DateTimeFormatter.ISO_DATE_TIME)
             }
@@ -54,7 +56,7 @@ fun ScoreScreen(viewModel: ScoreViewModel) {
                         )
                     }
                     items(liveMatches) { score ->
-                        ScoreItem(score)
+                        ScoreItem(score = score, onClick = onScoreClick)
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
@@ -69,7 +71,7 @@ fun ScoreScreen(viewModel: ScoreViewModel) {
                         )
                     }
                     items(upcomingMatches) { score ->
-                        ScoreItem(score)
+                        ScoreItem(score = score, onClick = onScoreClick)
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
